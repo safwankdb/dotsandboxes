@@ -23,11 +23,17 @@ import time
 logger = logging.getLogger(__name__)
 
 
-def start_competition(address1, address2, nb_rows, nb_cols, timelimit):
-   asyncio.get_event_loop().run_until_complete(connect_agent(address1, address2, nb_rows, nb_cols, timelimit))
+def start_competition(address1, address2, nb_rows, nb_cols, timelimit, episodes):
+   episode = 0
+   winners = []
+   while episode < episodes:
+      asyncio.get_event_loop().run_until_complete(connect_agent(address1, address2, nb_rows, nb_cols, timelimit, winners))
+      episode += 1
+   #print("Winner in each round is {}".format(winners))
+   print("Player 1 won {} times, Player 2 won {} times and Draw occured {} times".format(winners.count(1), winners.count(2), winners.count(0)))
 
 
-async def connect_agent(uri1, uri2, nb_rows, nb_cols, timelimit):
+async def connect_agent(uri1, uri2, nb_rows, nb_cols, timelimit, winners):
     cur_game = str(uuid.uuid4())
     winner = None
     cells = []
@@ -128,8 +134,9 @@ async def connect_agent(uri1, uri2, nb_rows, nb_cols, timelimit):
                     sum(timings[i])/len(timings[i]),
                     min(timings[i]),
                     max(timings[i])))
-
+    winners.append(winner)
     logger.info("Closed connections")
+    return winners
 
 
 def user_action(r, c, o, cur_player, cells, points, nb_rows, nb_cols):
@@ -198,13 +205,14 @@ def main(argv=None):
     parser.add_argument('--cols', '-c', type=int, default=2, help='Number of columns')
     parser.add_argument('--rows', '-r', type=int, default=2, help='Number of rows')
     parser.add_argument('--timelimit', '-t', type=float, default=0.5, help='Time limit per request in seconds')
+    parser.add_argument('--episodes', '-e', type=int, default=2, help='Number of episodes')
     parser.add_argument('agents', nargs=2, metavar='AGENT', help='Websockets addresses for agents')
     args = parser.parse_args(argv)
 
     logger.setLevel(max(logging.INFO - 10 * (args.verbose - args.quiet), logging.DEBUG))
     logger.addHandler(logging.StreamHandler(sys.stdout))
 
-    start_competition(args.agents[0], args.agents[1], args.rows, args.cols, args.timelimit)
+    start_competition(args.agents[0], args.agents[1], args.rows, args.cols, args.timelimit, args.episodes)
 
 
 if __name__ == "__main__":
