@@ -19,6 +19,8 @@ from collections import defaultdict
 import random
 import uuid
 import time
+from tqdm import tqdm
+import numpy as np
 
 logger = logging.getLogger(__name__)
 
@@ -26,9 +28,11 @@ logger = logging.getLogger(__name__)
 def start_competition(address1, address2, nb_rows, nb_cols, timelimit, episodes):
    episode = 0
    winners = []
-   while episode < episodes:
+   for episode in range(episodes):
       asyncio.get_event_loop().run_until_complete(connect_agent(address1, address2, nb_rows, nb_cols, timelimit, winners, episode))
-      episode += 1
+    #   last = winners[-min(len(winners), 50):]
+    #   score = 2 - sum(last) / len(last)
+    #   print(f"Score: {score*100:.02f}%", end='\r')
    #print("Winner in each round is {}".format(winners))
    print("Player 1 won {} times, Player 2 won {} times and Draw occured {} times".format(winners.count(1), winners.count(2), winners.count(0)))
 

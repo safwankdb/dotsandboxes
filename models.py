@@ -5,15 +5,15 @@ import numpy as np
 import random
 from tqdm import tqdm
 
-REPLAY_MEMORY_SIZE = 200
-WARMUP_SIZE = 50
-GAMMA = 0.9
-TARGET_UPDATE = 5
-BATCH_SIZE = 32
-EPISODES = 50
+REPLAY_MEMORY_SIZE = 2000
+WARMUP_SIZE = 200
+GAMMA = 0.99
+TARGET_UPDATE = 10
+BATCH_SIZE = 64
 
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
 print(f"\nRunning on {device.upper()}\n")
+
 
 class ExperienceReplay:
 
@@ -46,8 +46,10 @@ class DQN(nn.Module):
             nn.Linear(self.n_states, n),
             nn.BatchNorm1d(n),
             nn.LeakyReLU(),
+            nn.Linear(n, n),
+            nn.BatchNorm1d(n),
+            nn.LeakyReLU(),
             nn.Linear(n, self.n_actions),
-            # nn.Tanh(),
         )
         return model
 
@@ -59,11 +61,10 @@ class DQN(nn.Module):
         self.model = self.create_model().to(device)
         self.target_model = self.create_model().to(device)
         self.target_model.eval()
-        self.opt1 = torch.optim.Adam(self.model.parameters())
-        self.opt2 = torch.optim.Adam(self.target_model.parameters())
-        self.loss = nn.SmoothL1Loss()
+        self.opt = torch.optim.Adam(self.model.parameters())
+        # self.loss = nn.SmoothL1Loss()
+        self.loss = nn.MSELoss()
         self.target_counter = 0
-
 
     def memorize(self, s, a, r, s_, done=False):
         self.replay_memory.push(s, a, r, s_, done)
@@ -102,22 +103,19 @@ class DQN(nn.Module):
             q[a] = q_
             X.append(s)
             y.append(q)
-        
+
         X = torch.Tensor(X).to(device)
         y = torch.stack(y).to(device)
 
         self.model.train()
         out = self.model(X)
         loss = self.loss(out, y)
-        self.opt1.zero_grad()
+        self.opt.zero_grad()
         loss.backward()
-        self.opt1.step()
+        self.opt.step()
 
         if terminal:
             self.target_counter += 1
             if self.target_counter >= TARGET_UPDATE:
                 self.target_model.load_state_dict(self.model.state_dict())
             self.target_counter = 0
-
-
-

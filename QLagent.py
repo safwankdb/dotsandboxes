@@ -20,8 +20,9 @@ from models import DQN
 logger = logging.getLogger(__name__)
 games = {}
 
-DECAY = 0.9
-MIN_EPSILON = 0.001
+EPS_START = 0.9 
+EPS_DECAY = 200
+EPS_END = 0.05
 init = True
 agent = None
 
@@ -29,7 +30,7 @@ class QLEnv:
 
     def __init__(self, player, nb_rows, nb_cols, timelimit, episode):
 
-        self.EPSILON = max(0.1*(DECAY)**episode, MIN_EPSILON)
+        self.EPSILON = EPS_END + (EPS_START - EPS_END) * np.exp(-episode / EPS_DECAY)
         self.timelimit = timelimit
         self.ended = False
         self.nb_rows = nb_rows
@@ -127,9 +128,9 @@ class QLEnv:
 
     def end_game(self):
         if self.score[0] > self.score[1]:
-            self.reward += 1000
+            self.reward += 100
         elif self.score[0] < self.score[1]:
-            self.reward += -1000
+            self.reward += -100
         self.ended = True
         self.dqn.memorize(self.prev_state, self.action,
                           self.reward, self.state, done=True)
@@ -223,7 +224,6 @@ def main(argv=None):
     parser.add_argument('port', metavar='PORT', type=int,
                         help='Port to use for server')
     args = parser.parse_args(argv)
-    init = True
     logger.setLevel(
         max(logging.INFO - 10 * (args.verbose - args.quiet), logging.DEBUG))
     logger.addHandler(logging.StreamHandler(sys.stdout))
