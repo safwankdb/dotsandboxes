@@ -5,11 +5,11 @@ import numpy as np
 import random
 from tqdm import tqdm
 
-REPLAY_MEMORY_SIZE = 2000
-WARMUP_SIZE = 200
-GAMMA = 0.99
-TARGET_UPDATE = 10
-BATCH_SIZE = 64
+REPLAY_MEMORY_SIZE = 500
+WARMUP_SIZE = 100
+GAMMA = 0.9
+TARGET_UPDATE = 5
+BATCH_SIZE = 32
 
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
 print(f"\nRunning on {device.upper()}\n")
