@@ -18,7 +18,6 @@ import numpy as np
 
 logger = logging.getLogger(__name__)
 games = {}
-agentclass = None
 
 
 class QLEnv:
@@ -40,13 +39,12 @@ class QLEnv:
         self.player = player
         self.score = [0, 0]
         self.reward = 0
-    
+
     def update_score(self, score):
         if self.player == 2:
             score = score[::-1]
         self.reward = score[0] - self.score[0] - score[1] + self.score[1]
         self.score = score
-
 
     def update_state(self, update_prev=False):
         i = 0
@@ -73,25 +71,25 @@ class QLEnv:
 
     def register_action(self, row, column, orientation, player):
         self.cells[row][column][orientation] = player
-        self.update_state(player==self.player)
+        self.update_state(player == self.player)
 
     def next_action(self):
         logger.info("Computing next move (grid={}x{}, player={})"
                     .format(self.nb_rows, self.nb_cols, self.player))
         # Random move
-        free_lines = [i for i in range(len(self.state)) if self.state[i]==0]
+        free_lines = [i for i in range(len(self.state)) if self.state[i] == 0]
         if len(free_lines) == 0:
             return None
         movei = random.choice(free_lines)
         if movei < (self.nb_cols+1)*self.nb_rows:
             o = 'v'
             r = movei // (self.nb_cols+1)
-            c = movei %  (self.nb_cols+1)
+            c = movei % (self.nb_cols+1)
         else:
             movei -= (self.nb_cols+1)*self.nb_rows
             o = 'h'
             r = movei // (self.nb_cols)
-            c = movei %  (self.nb_cols)
+            c = movei % (self.nb_cols)
         return r, c, o
 
     def end_game(self):
@@ -100,7 +98,6 @@ class QLEnv:
         elif self.score[0] < self.score[1]:
             self.reward += -1000
         self.ended = True
-
 
 
 # MAIN EVENT LOOP
@@ -116,9 +113,9 @@ async def handler(websocket, path):
             # Initialize game
             nb_rows, nb_cols = msg["grid"]
             agent = QLEnv(msg["player"],
-                                            nb_rows,
-                                            nb_cols,
-                                            msg["timelimit"])
+                          nb_rows,
+                          nb_cols,
+                          msg["timelimit"])
             if msg["player"] == 1:
                 # Start the game
                 nm = agent.next_action()
@@ -178,7 +175,6 @@ def start_server(port):
 # COMMAND LINE INTERFACE
 
 def main(argv=None):
-    global agentclass
     parser = argparse.ArgumentParser(
         description='Start agent to play Dots and Boxes')
     parser.add_argument('--verbose', '-v', action='count',
