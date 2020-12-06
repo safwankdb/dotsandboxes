@@ -132,7 +132,7 @@ async def handler(websocket, path):
                 if msg["player"] == 1:
                     # Start the game
                     nm = games[game].next_action()
-                    print('nm = {}'.format(nm))
+                    # print('nm = {}'.format(nm))
                     if nm is None:
                         # Game over
                         logger.info("Game over")
@@ -176,7 +176,7 @@ async def handler(websocket, path):
                 logger.error("Unknown message type:\n{}".format(msg))
 
             if answer is not None:
-                print(answer)
+                # print(answer)
                 await websocket.send(json.dumps(answer))
                 logger.info("> {}".format(answer))
     except websockets.exceptions.ConnectionClosed as err:
@@ -197,7 +197,7 @@ def main(argv=None):
     global agentclass
     parser = argparse.ArgumentParser(description='Start agent to play Dots and Boxes')
     parser.add_argument('--verbose', '-v', action='count', default=0, help='Verbose output')
-    parser.add_argument('--quiet', '-q', action='count', default=0, help='Quiet output')
+    parser.add_argument('--quiet', '-q', action='count', default=1, help='Quiet output')
     parser.add_argument('port', metavar='PORT', type=int, help='Port to use for server')
     args = parser.parse_args(argv)
 

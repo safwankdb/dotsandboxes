@@ -27,13 +27,13 @@ def start_competition(address1, address2, nb_rows, nb_cols, timelimit, episodes)
    episode = 0
    winners = []
    while episode < episodes:
-      asyncio.get_event_loop().run_until_complete(connect_agent(address1, address2, nb_rows, nb_cols, timelimit, winners))
+      asyncio.get_event_loop().run_until_complete(connect_agent(address1, address2, nb_rows, nb_cols, timelimit, winners, episode))
       episode += 1
    #print("Winner in each round is {}".format(winners))
    print("Player 1 won {} times, Player 2 won {} times and Draw occured {} times".format(winners.count(1), winners.count(2), winners.count(0)))
 
 
-async def connect_agent(uri1, uri2, nb_rows, nb_cols, timelimit, winners):
+async def connect_agent(uri1, uri2, nb_rows, nb_cols, timelimit, winners, episode):
     cur_game = str(uuid.uuid4())
     winner = None
     cells = []
@@ -47,15 +47,16 @@ async def connect_agent(uri1, uri2, nb_rows, nb_cols, timelimit, winners):
             columns.append({"v":0, "h":0, "p":0})
         cells.append(columns)
 
-    logger.info("Connecting to {}".format(uri1))
+    # logger.info("Connecting to {}".format(uri1))
     async with websockets.connect(uri1) as websocket1:
-        logger.info("Connecting to {}".format(uri2))
+        # logger.info("Connecting to {}".format(uri2))
         async with websockets.connect(uri2) as websocket2:
-            logger.info("Connected")
+            # logger.info("Connected")
 
             # Start game
             msg = {
               "type": "start",
+              "episode": episode,
               "player": 1,
               "timelimit": timelimit,
               "game": cur_game,
@@ -68,7 +69,7 @@ async def connect_agent(uri1, uri2, nb_rows, nb_cols, timelimit, winners):
             # Run game
             while winner is None:
                 ask_time = time.time()
-                logger.info("Waiting for player {}".format(cur_player))
+                # logger.info("Waiting for player {}".format(cur_player))
                 if cur_player == 1:
                     msg = await websocket1.recv()
                 else:
@@ -76,7 +77,7 @@ async def connect_agent(uri1, uri2, nb_rows, nb_cols, timelimit, winners):
                 recv_time = time.time()
                 diff_time = recv_time - ask_time
                 timings[cur_player].append(diff_time)
-                logger.info("Message received after (s): {}".format(diff_time))
+                # logger.info("Message received after (s): {}".format(diff_time))
                 try:
                     msg = json.loads(msg)
                 except json.decoder.JSONDecodeError as err:
@@ -113,7 +114,7 @@ async def connect_agent(uri1, uri2, nb_rows, nb_cols, timelimit, winners):
                 cur_player = next_player
 
             # End game
-            logger.info("Game ended: points1={} - points2={} - winner={}".format(points[1], points[2], winner))
+            logger.info("Game {}: {} - {}".format(episode, points[1], points[2]))
             msg = {
                 "type": "end",
                 "game": cur_game,
@@ -128,19 +129,19 @@ async def connect_agent(uri1, uri2, nb_rows, nb_cols, timelimit, winners):
             await websocket2.send(json.dumps(msg))
 
     # Timings
-    for i in [1, 2]:
-        logger.info("Timings: player={} - avg={} - min={} - max={}"\
-            .format(i,
-                    sum(timings[i])/len(timings[i]),
-                    min(timings[i]),
-                    max(timings[i])))
+    # for i in [1, 2]:
+        # logger.info("Timings: player={} - avg={} - min={} - max={}"\
+        #     .format(i,
+        #             sum(timings[i])/len(timings[i]),
+        #             min(timings[i]),
+        #             max(timings[i])))
     winners.append(winner)
-    logger.info("Closed connections")
+    # logger.info("Closed connections")
     return winners
 
 
 def user_action(r, c, o, cur_player, cells, points, nb_rows, nb_cols):
-    logger.info("User action: player={} - r={} - c={} - o={}".format(cur_player, r, c, o))
+    # logger.info("User action: player={} - r={} - c={} - o={}".format(cur_player, r, c, o))
     next_player = cur_player
     won_cell = False
     cell = cells[r][c]
@@ -170,7 +171,7 @@ def user_action(r, c, o, cur_player, cells, points, nb_rows, nb_cols):
     if o == "v":
         if cell["v"] != 0:
             return cur_player
-        cell["v"] = cur_player;
+        cell["v"] = cur_player
         # Left
         if c > 0:
             if cells[r][c - 1]["v"] != 0 \
@@ -194,7 +195,7 @@ def user_action(r, c, o, cur_player, cells, points, nb_rows, nb_cols):
         next_player = 3 - cur_player
     else:
         next_player = cur_player
-        print("Update points: player1={} - player2={}".format(points[1], points[2]))
+        # print("Update points: player1={} - player2={}".format(points[1], points[2]))
     return next_player
 
 
@@ -202,10 +203,10 @@ def main(argv=None):
     parser = argparse.ArgumentParser(description='Start agent to play Dots and Boxes')
     parser.add_argument('--verbose', '-v', action='count', default=0, help='Verbose output')
     parser.add_argument('--quiet', '-q', action='count', default=0, help='Quiet output')
-    parser.add_argument('--cols', '-c', type=int, default=2, help='Number of columns')
-    parser.add_argument('--rows', '-r', type=int, default=2, help='Number of rows')
-    parser.add_argument('--timelimit', '-t', type=float, default=0.5, help='Time limit per request in seconds')
-    parser.add_argument('--episodes', '-e', type=int, default=2, help='Number of episodes')
+    parser.add_argument('--cols', '-c', type=int, default=3, help='Number of columns')
+    parser.add_argument('--rows', '-r', type=int, default=3, help='Number of rows')
+    parser.add_argument('--timelimit', '-t', type=float, default=5, help='Time limit per request in seconds')
+    parser.add_argument('--episodes', '-e', type=int, default=200, help='Number of episodes')
     parser.add_argument('agents', nargs=2, metavar='AGENT', help='Websockets addresses for agents')
     args = parser.parse_args(argv)
 

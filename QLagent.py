@@ -15,14 +15,21 @@ from collections import defaultdict
 import random
 
 import numpy as np
+from models import DQN
 
 logger = logging.getLogger(__name__)
 games = {}
 
+DECAY = 0.9
+MIN_EPSILON = 0.001
+init = True
+agent = None
 
 class QLEnv:
 
-    def __init__(self, player, nb_rows, nb_cols, timelimit):
+    def __init__(self, player, nb_rows, nb_cols, timelimit, episode):
+
+        self.EPSILON = max(0.1*(DECAY)**episode, MIN_EPSILON)
         self.timelimit = timelimit
         self.ended = False
         self.nb_rows = nb_rows
@@ -34,17 +41,36 @@ class QLEnv:
                 columns.append({"v": 0, "h": 0})
             rows.append(columns)
         self.cells = rows
-        len_states = nb_rows*(nb_cols+1)+nb_cols*(nb_rows+1)
-        self.state = np.zeros(len_states)
+        self.len_states = nb_rows*(nb_cols+1)+nb_cols*(nb_rows+1)
+        self.state = np.zeros(self.len_states)
         self.player = player
         self.score = [0, 0]
         self.reward = 0
 
-    def update_score(self, score):
+        self.dqn = DQN(self.len_states, self.len_states)
+
+    def reset(self):
+        self.reward = 0
+        self.state = np.zeros(self.len_states)
+        self.score = [0, 0]
+        rows = []
+        for _ in range(self.nb_rows + 1):
+            columns = []
+            for _ in range(self.nb_cols + 1):
+                columns.append({"v": 0, "h": 0})
+            rows.append(columns)
+        self.cells = rows
+
+
+    def process_next_state(self, score):
         if self.player == 2:
             score = score[::-1]
         self.reward = score[0] - self.score[0] - score[1] + self.score[1]
+        # self.reward /= 100
         self.score = score
+        self.dqn.memorize(self.prev_state, self.action,
+                          self.reward, self.state)
+        self.dqn.train()
 
     def update_state(self, update_prev=False):
         i = 0
@@ -74,13 +100,20 @@ class QLEnv:
         self.update_state(player == self.player)
 
     def next_action(self):
-        logger.info("Computing next move (grid={}x{}, player={})"
-                    .format(self.nb_rows, self.nb_cols, self.player))
-        # Random move
         free_lines = [i for i in range(len(self.state)) if self.state[i] == 0]
         if len(free_lines) == 0:
+            print('end')
             return None
-        movei = random.choice(free_lines)
+        if np.random.rand(1) > self.EPSILON:
+            moves = np.argsort(self.dqn.predict(self.state))
+            idx = len(moves) - 1
+            while moves[idx] not in free_lines:
+                idx -= 1
+            movei = moves[idx]
+            movei = int(movei)
+        else:
+            movei = np.random.randint(0, self.len_states)
+        self.action = movei
         if movei < (self.nb_cols+1)*self.nb_rows:
             o = 'v'
             r = movei // (self.nb_cols+1)
@@ -98,11 +131,15 @@ class QLEnv:
         elif self.score[0] < self.score[1]:
             self.reward += -1000
         self.ended = True
+        self.dqn.memorize(self.prev_state, self.action,
+                          self.reward, self.state, done=True)
+        self.dqn.train(terminal=True)
 
 
 # MAIN EVENT LOOP
 
 async def handler(websocket, path):
+    global init, agent
     logger.info("Start listening")
     # msg = await websocket.recv()
     async for msg in websocket:
@@ -112,10 +149,12 @@ async def handler(websocket, path):
         if msg["type"] == "start":
             # Initialize game
             nb_rows, nb_cols = msg["grid"]
-            agent = QLEnv(msg["player"],
-                          nb_rows,
-                          nb_cols,
-                          msg["timelimit"])
+            if init:
+                agent = QLEnv(msg["player"], nb_rows, nb_cols,
+                            msg["timelimit"], msg["episode"])
+                init = False
+            else:
+                agent.reset()
             if msg["player"] == 1:
                 # Start the game
                 nm = agent.next_action()
@@ -138,7 +177,7 @@ async def handler(websocket, path):
             o = msg["orientation"]
             agent.register_action(r, c, o, msg["player"])
             if msg["nextplayer"] == agent.player:
-                agent.update_score(msg['score'])
+                agent.process_next_state(msg['score'])
                 nm = agent.next_action()
                 if nm is None:
                     logger.info("Game over")
@@ -184,7 +223,7 @@ def main(argv=None):
     parser.add_argument('port', metavar='PORT', type=int,
                         help='Port to use for server')
     args = parser.parse_args(argv)
-
+    init = True
     logger.setLevel(
         max(logging.INFO - 10 * (args.verbose - args.quiet), logging.DEBUG))
     logger.addHandler(logging.StreamHandler(sys.stdout))
