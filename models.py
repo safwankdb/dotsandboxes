@@ -5,13 +5,14 @@ import numpy as np
 import random
 from tqdm import tqdm
 
-REPLAY_MEMORY_SIZE = 500
-WARMUP_SIZE = 100
-GAMMA = 0.9
-TARGET_UPDATE = 5
+REPLAY_MEMORY_SIZE = 50_000
+WARMUP_SIZE = 1000
+GAMMA = 1
+TARGET_UPDATE = 10
 BATCH_SIZE = 32
 
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
+# device = 'cpu'
 print(f"\nRunning on {device.upper()}\n")
 
 
@@ -39,16 +40,19 @@ class DQN(nn.Module):
 
     def create_model(self):
         if self.n_states < 16:
-            n = 18
+            n = 24
         else:
             n = 32
         model = nn.Sequential(
             nn.Linear(self.n_states, n),
             nn.BatchNorm1d(n),
-            nn.LeakyReLU(),
-            nn.Linear(n, n),
+            nn.ReLU(),
+            nn.Linear(n, 2*n),
+            nn.BatchNorm1d(2*n),
+            nn.ReLU(),
+            nn.Linear(2*n, n),
             nn.BatchNorm1d(n),
-            nn.LeakyReLU(),
+            nn.ReLU(),
             nn.Linear(n, self.n_actions),
         )
         return model

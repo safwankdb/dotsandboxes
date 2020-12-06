@@ -20,9 +20,9 @@ from models import DQN
 logger = logging.getLogger(__name__)
 games = {}
 
-EPS_START = 0.9 
-EPS_DECAY = 200
-EPS_END = 0.05
+EPS_START = 1
+EPS_DECAY = 100
+EPS_END = 0.1
 init = True
 agent = None
 
@@ -47,7 +47,6 @@ class QLEnv:
         self.player = player
         self.score = [0, 0]
         self.reward = 0
-
         self.dqn = DQN(self.len_states, self.len_states)
 
     def reset(self):
@@ -105,7 +104,7 @@ class QLEnv:
         if len(free_lines) == 0:
             print('end')
             return None
-        if np.random.rand(1) > self.EPSILON:
+        if np.random.random() > self.EPSILON:
             moves = np.argsort(self.dqn.predict(self.state))
             idx = len(moves) - 1
             while moves[idx] not in free_lines:
@@ -113,7 +112,8 @@ class QLEnv:
             movei = moves[idx]
             movei = int(movei)
         else:
-            movei = np.random.randint(0, self.len_states)
+            movei = np.random.choice(free_lines)
+            movei = int(movei)
         self.action = movei
         if movei < (self.nb_cols+1)*self.nb_rows:
             o = 'v'
