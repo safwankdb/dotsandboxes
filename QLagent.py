@@ -49,7 +49,9 @@ class QLEnv:
         self.reward = 0
         self.dqn = DQN(self.len_states, self.len_states)
 
-    def reset(self):
+    def reset(self, episode):
+        self.episode = episode
+        self.EPSILON = EPS_END + (EPS_START - EPS_END) * np.exp(-episode / EPS_DECAY)
         self.reward = 0
         self.state = np.zeros(self.len_states)
         self.score = [0, 0]
@@ -60,6 +62,8 @@ class QLEnv:
                 columns.append({"v": 0, "h": 0})
             rows.append(columns)
         self.cells = rows
+        if self.episode + 1 == 100_000:
+            torch.save(self.dqn.model.state_dict(), f"model_{episode+1}.pth")
 
 
     def process_next_state(self, score):
@@ -155,7 +159,7 @@ async def handler(websocket, path):
                             msg["timelimit"], msg["episode"])
                 init = False
             else:
-                agent.reset()
+                agent.reset(msg["episode"])
             if msg["player"] == 1:
                 # Start the game
                 nm = agent.next_action()
