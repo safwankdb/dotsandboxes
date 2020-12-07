@@ -30,8 +30,8 @@ def start_competition(address1, address2, nb_rows, nb_cols, timelimit, episodes)
    winners = []
    for episode in range(episodes):
       asyncio.get_event_loop().run_until_complete(connect_agent(address1, address2, nb_rows, nb_cols, timelimit, winners, episode))
-      if episode > 50:
-        last_n = winners[-50:]
+      if episode > 500:
+        last_n = winners[-500:]
         print("Epsiode {} Cumulative Score: {} - {} - {}".format(episode, last_n.count(1), last_n.count(2), last_n.count(0)))
     #   last = winners[-min(len(winners), 50):]
     #   score = 2 - sum(last) / len(last)

@@ -65,8 +65,8 @@ class QLEnv:
                 columns.append({"v": 0, "h": 0})
             rows.append(columns)
         self.cells = rows
-        if self.episode + 1 == 100_000:
-            torch.save(self.dqn.model.state_dict(), f"model_{episode+1}.pth")
+        if self.episode + 1 % 100_000 == 0:
+            torch.save(self.dqn.model.state_dict(), f"model_{self.nb_rows}_rows_{self.nb_cols}_cols_{episode+1}.pth")
 
 
     def process_next_state(self, score):
