@@ -53,7 +53,8 @@ class QLEnv:
     def reset(self, episode):
         self.episode = episode
         self.EPSILON = EPS_END + (EPS_START - EPS_END)*(1-episode/50_000)
-        self.EPSILON = max(self.EPSILON, EPS_END)        self.reward = 0
+        self.EPSILON = max(self.EPSILON, EPS_END)
+        self.reward = 0
         self.state = np.zeros(self.len_states)
         self.score = [0, 0]
         rows = []
