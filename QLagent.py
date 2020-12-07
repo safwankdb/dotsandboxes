@@ -14,6 +14,7 @@ import json
 from collections import defaultdict
 import random
 
+import torch
 import numpy as np
 from models import DQN
 
