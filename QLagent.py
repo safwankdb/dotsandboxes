@@ -21,7 +21,7 @@ logger = logging.getLogger(__name__)
 games = {}
 
 EPS_START = 1
-EPS_DECAY = 100
+EPS_DECAY = 1000
 EPS_END = 0.1
 init = True
 agent = None

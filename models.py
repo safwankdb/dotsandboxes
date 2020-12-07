@@ -5,7 +5,7 @@ import numpy as np
 import random
 from tqdm import tqdm
 
-REPLAY_MEMORY_SIZE = 50_000
+REPLAY_MEMORY_SIZE = 5_000
 WARMUP_SIZE = 1000
 GAMMA = 1
 TARGET_UPDATE = 10
@@ -65,7 +65,7 @@ class DQN(nn.Module):
         self.model = self.create_model().to(device)
         self.target_model = self.create_model().to(device)
         self.target_model.eval()
-        self.opt = torch.optim.Adam(self.model.parameters())
+        self.opt = torch.optim.RMSprop(self.model.parameters(), lr=1e-3)
         # self.loss = nn.SmoothL1Loss()
         self.loss = nn.MSELoss()
         self.target_counter = 0
