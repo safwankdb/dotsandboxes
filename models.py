@@ -7,7 +7,7 @@ from tqdm import tqdm
 
 REPLAY_MEMORY_SIZE = 50_000
 WARMUP_SIZE = 1000
-GAMMA = 1
+GAMMA = 0.8
 TARGET_UPDATE = 10
 BATCH_SIZE = 32
 
@@ -39,19 +39,18 @@ class ExperienceReplay:
 class DQN(nn.Module):
 
     def create_model(self):
-        if self.n_states < 16:
+        if self.n_states <= 12:
             n = 24
         else:
-            n = 32
+            n = 64
         model = nn.Sequential(
             nn.Linear(self.n_states, n),
-            nn.BatchNorm1d(n),
             nn.ReLU(),
             nn.Linear(n, 2*n),
-            nn.BatchNorm1d(2*n),
+            nn.ReLU(),
+            nn.Linear(2*n, 2*n),
             nn.ReLU(),
             nn.Linear(2*n, n),
-            nn.BatchNorm1d(n),
             nn.ReLU(),
             nn.Linear(n, self.n_actions),
         )
