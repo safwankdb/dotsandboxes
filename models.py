@@ -5,7 +5,7 @@ import numpy as np
 import random
 from tqdm import tqdm
 
-REPLAY_MEMORY_SIZE = 5_000
+REPLAY_MEMORY_SIZE = 50_000
 WARMUP_SIZE = 1000
 GAMMA = 1
 TARGET_UPDATE = 10

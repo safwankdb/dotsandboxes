@@ -22,7 +22,7 @@ logger = logging.getLogger(__name__)
 games = {}
 
 EPS_START = 1
-DECAY_LEN = 5000
+DECAY_LEN = 50_000
 EPS_END = 0.1
 init = True
 agent = None
