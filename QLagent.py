@@ -22,6 +22,7 @@ logger = logging.getLogger(__name__)
 games = {}
 
 EPS_START = 1
+DECAY_LEN = 5000
 EPS_END = 0.1
 init = True
 agent = None
@@ -30,7 +31,7 @@ class QLEnv:
 
     def __init__(self, player, nb_rows, nb_cols, timelimit, episode):
 
-        self.EPSILON = EPS_END + (EPS_START - EPS_END)*(1-episode/50_000)
+        self.EPSILON = EPS_END + (EPS_START - EPS_END)*(1-episode/DECAY_LEN)
         self.EPSILON = max(self.EPSILON, EPS_END)
         self.timelimit = timelimit
         self.ended = False
@@ -52,7 +53,7 @@ class QLEnv:
 
     def reset(self, episode):
         self.episode = episode
-        self.EPSILON = EPS_END + (EPS_START - EPS_END)*(1-episode/50_000)
+        self.EPSILON = EPS_END + (EPS_START - EPS_END)*(1-episode/DECAY_LEN)
         self.EPSILON = max(self.EPSILON, EPS_END)
         self.reward = 0
         self.state = np.zeros(self.len_states)
@@ -79,6 +80,8 @@ class QLEnv:
         self.dqn.train()
 
     def update_state(self, update_prev=False):
+        if update_prev:
+            self.prev_state = self.state.copy()
         i = 0
         for ri in range(self.nb_rows):
             for ci in range(self.nb_cols+1):
@@ -98,8 +101,6 @@ class QLEnv:
                     value = -1
                 self.state[i] = value
                 i += 1
-        if update_prev:
-            self.prev_state = self.state.copy()
 
     def register_action(self, row, column, orientation, player):
         self.cells[row][column][orientation] = player
