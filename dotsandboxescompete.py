@@ -32,7 +32,7 @@ def start_competition(address1, address2, nb_rows, nb_cols, timelimit, episodes)
       asyncio.get_event_loop().run_until_complete(connect_agent(address1, address2, nb_rows, nb_cols, timelimit, winners, episode))
       if episode > 50:
         last_n = winners[-50:]
-        print("Last 50 episodes, Player 1 won {} times, Player 2 won {} times and Draw occured {} times".format(last_n.count(1), last_n.count(2), last_n.count(0)))
+        print("Epsiode {} Cumulative Score: {} - {} - {}".format(episode, last_n.count(1), last_n.count(2), last_n.count(0)))
     #   last = winners[-min(len(winners), 50):]
     #   score = 2 - sum(last) / len(last)
     #   print(f"Score: {score*100:.02f}%", end='\r')

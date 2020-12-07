@@ -22,7 +22,6 @@ logger = logging.getLogger(__name__)
 games = {}
 
 EPS_START = 1
-EPS_DECAY = 1000
 EPS_END = 0.1
 init = True
 agent = None
@@ -31,7 +30,8 @@ class QLEnv:
 
     def __init__(self, player, nb_rows, nb_cols, timelimit, episode):
 
-        self.EPSILON = EPS_END + (EPS_START - EPS_END) * np.exp(-episode / EPS_DECAY)
+        self.EPSILON = EPS_END + (EPS_START - EPS_END)*(1-episode/50_000)
+        self.EPSILON = max(self.EPSILON, EPS_END)
         self.timelimit = timelimit
         self.ended = False
         self.nb_rows = nb_rows
@@ -52,8 +52,8 @@ class QLEnv:
 
     def reset(self, episode):
         self.episode = episode
-        self.EPSILON = EPS_END + (EPS_START - EPS_END) * np.exp(-episode / EPS_DECAY)
-        self.reward = 0
+        self.EPSILON = EPS_END + (EPS_START - EPS_END)*(1-episode/50_000)
+        self.EPSILON = max(self.EPSILON, EPS_END)        self.reward = 0
         self.state = np.zeros(self.len_states)
         self.score = [0, 0]
         rows = []
