@@ -56,13 +56,14 @@ class QLEnv:
         self.prev_state = None
         self.dqn = DQN(self.len_states, self.len_states)
 
-    def reset(self, episode):
+    def reset(self, player, episode):
         self.episode = episode
         self.EPSILON = EPS_END + (EPS_START - EPS_END)*(1-(episode/DECAY_LEN))
         self.EPSILON = max(self.EPSILON, EPS_END)
         self.reward = 0
         self.state = np.zeros(self.len_states)
         self.prev_state = None
+        self.player = player
         self.score = [0, 0]
         rows = []
         for _ in range(self.nb_rows + 1):
@@ -73,7 +74,7 @@ class QLEnv:
         self.cells = rows
         if (self.episode + 1) % SAVE_EVERY == 0:
             torch.save(self.dqn.model.state_dict(),
-                       f"model_self_play_{self.nb_rows}x{self.nb_cols}_player_{self.player}_{episode+1}.pth")
+                       f"model_self_play_{self.nb_rows}x{self.nb_cols}_{episode+1}.pth")
 
     def process_next_state(self, score):
         if self.player == 2:
@@ -152,7 +153,7 @@ class QLEnv:
         self.dqn.train(terminal=True)
 
 
-device = 'cpu'
+device = 'cuda' if torch.cuda.is_available() else 'cpu'
 
 
 class QLPlayer:
@@ -188,13 +189,12 @@ class QLPlayer:
         self.state = np.zeros(self.len_states)
         self.player = player
         self.model = self.create_model().to(device)
-        self.model.load_state_dict(torch.load('model_2_rows_2_cols_20000.pth'))
+        self.model.load_state_dict(torch.load(f'model_self_play_2x2_player_{player}_20000.pth'))
         self.model.eval()
 
-    def reset(self):
-        self.reward = 0
+    def reset(self, player):
         self.state = np.zeros(self.len_states)
-        self.score = [0, 0]
+        self.player = player
         rows = []
         for _ in range(self.nb_rows + 1):
             columns = []
@@ -281,9 +281,9 @@ async def handler(websocket, path):
                 init = False
             else:
                 if not test:
-                    agent.reset(msg["episode"])
+                    agent.reset(msg['player'], msg["episode"])
                 else:
-                    agent.reset()
+                    agent.reset(msg['player'])
             if msg["player"] == 1:
                 nm = agent.next_action()
                 if nm is None:
