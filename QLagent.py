@@ -73,7 +73,7 @@ class QLEnv:
         self.cells = rows
         if (self.episode + 1) % SAVE_EVERY == 0:
             torch.save(self.dqn.model.state_dict(),
-                       f"model_self_play_{self.nb_rows}_rows_{self.nb_cols}_cols_{episode+1}.pth")
+                       f"model_self_play_{self.nb_rows}x{self.nb_cols}_player_{self.player}_{episode+1}.pth")
 
     def process_next_state(self, score):
         if self.player == 2:
