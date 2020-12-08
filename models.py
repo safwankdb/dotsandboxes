@@ -7,8 +7,8 @@ from tqdm import tqdm
 
 REPLAY_MEMORY_SIZE = 50_000
 WARMUP_SIZE = 1000
-GAMMA = 0.8
-TARGET_UPDATE = 10
+GAMMA = 0.9
+TARGET_UPDATE = 5
 BATCH_SIZE = 32
 
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
@@ -50,9 +50,9 @@ class DQN(nn.Module):
             nn.Linear(n, 2*n),
             nn.BatchNorm1d(2*n),
             nn.ReLU(),
-            nn.Linear(2*n, 2*n),
-            nn.BatchNorm1d(2*n),
-            nn.ReLU(),
+            # nn.Linear(2*n, 2*n),
+            # nn.BatchNorm1d(2*n),
+            # nn.ReLU(),
             nn.Linear(2*n, n),
             nn.BatchNorm1d(n),
             nn.ReLU(),
@@ -125,4 +125,4 @@ class DQN(nn.Module):
             self.target_counter += 1
             if self.target_counter >= TARGET_UPDATE:
                 self.target_model.load_state_dict(self.model.state_dict())
-            self.target_counter = 0
+                self.target_counter = 0
