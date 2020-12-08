@@ -23,9 +23,9 @@ logger = logging.getLogger(__name__)
 games = {}
 
 EPS_START = 1
-DECAY_LEN = 5_000
+DECAY_LEN = 20_000
 EPS_END = 0.1
-SAVE_EVERY = 5_000
+SAVE_EVERY = 20_000
 init = True
 agent = None
 test = False
@@ -189,7 +189,7 @@ class QLPlayer:
         self.state = np.zeros(self.len_states)
         self.player = player
         self.model = self.create_model().to(device)
-        self.model.load_state_dict(torch.load(f'model_self_play_2x2_20000.pth'))
+        self.model.load_state_dict(torch.load(f'model_self_play_2x2_100000.pth'))
         self.model.eval()
 
     def reset(self, player):
@@ -238,7 +238,7 @@ class QLPlayer:
         with torch.no_grad():
             x = torch.Tensor(self.state).unsqueeze(0).to(device)
             out = self.model(x)[0].cpu()
-        # print(out)
+        print(out)
         moves = np.argsort(out)
         idx = len(moves) - 1
         while moves[idx] not in free_lines:
