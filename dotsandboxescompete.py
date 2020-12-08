@@ -29,7 +29,10 @@ def start_competition(address1, address2, nb_rows, nb_cols, timelimit, episodes)
    episode = 0
    winners = []
    for episode in range(episodes):
-        asyncio.get_event_loop().run_until_complete(connect_agent(address1, address2, nb_rows, nb_cols, timelimit, winners, episode))
+        if random.random() > 0.5:
+            asyncio.get_event_loop().run_until_complete(connect_agent(address1, address2, nb_rows, nb_cols, timelimit, winners, episode))
+        else:
+            asyncio.get_event_loop().run_until_complete(connect_agent(address2, address1, nb_rows, nb_cols, timelimit, winners, episode, 1))
         last_n = winners[-min(500, len(winners)):]
         print("Epsiode {} Cumulative Score: {} - {} - {}".format(episode, last_n.count(1), last_n.count(2), last_n.count(0)))
     #   last = winners[-min(len(winners), 50):]
@@ -39,7 +42,7 @@ def start_competition(address1, address2, nb_rows, nb_cols, timelimit, episodes)
    print("Player 1 won {} times, Player 2 won {} times and Draw occured {} times".format(winners.count(1), winners.count(2), winners.count(0)))
 
 
-async def connect_agent(uri1, uri2, nb_rows, nb_cols, timelimit, winners, episode):
+async def connect_agent(uri1, uri2, nb_rows, nb_cols, timelimit, winners, episode, sort_key=0):
     cur_game = str(uuid.uuid4())
     winner = None
     cells = []
@@ -141,7 +144,10 @@ async def connect_agent(uri1, uri2, nb_rows, nb_cols, timelimit, winners, episod
         #             sum(timings[i])/len(timings[i]),
         #             min(timings[i]),
         #             max(timings[i])))
-    winners.append(winner)
+    if sort_key == 0:
+        winners.append(winner)
+    else:
+        winners.append([winner[1], winner[0]])
     # logger.info("Closed connections")
     return winners
 
