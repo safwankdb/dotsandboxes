@@ -45,16 +45,10 @@ class DQN(nn.Module):
             n = 64
         model = nn.Sequential(
             nn.Linear(self.n_states, n),
-            nn.BatchNorm1d(n),
             nn.ReLU(),
             nn.Linear(n, 2*n),
-            nn.BatchNorm1d(2*n),
             nn.ReLU(),
-            # nn.Linear(2*n, 2*n),
-            # nn.BatchNorm1d(2*n),
-            # nn.ReLU(),
             nn.Linear(2*n, n),
-            nn.BatchNorm1d(n),
             nn.ReLU(),
             nn.Linear(n, self.n_actions),
         )
@@ -68,7 +62,7 @@ class DQN(nn.Module):
         self.model = self.create_model().to(device)
         self.target_model = self.create_model().to(device)
         self.target_model.eval()
-        self.opt = torch.optim.RMSprop(self.model.parameters(), lr=1e-3)
+        self.opt = torch.optim.RMSprop(self.model.parameters(), 1e-3)
         # self.loss = nn.SmoothL1Loss()
         self.loss = nn.MSELoss()
         self.target_counter = 0

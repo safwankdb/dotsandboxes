@@ -23,9 +23,9 @@ logger = logging.getLogger(__name__)
 games = {}
 
 EPS_START = 1
-DECAY_LEN = 50_000
-EPS_END = 0.1
-SAVE_EVERY = 50_000
+DECAY_LEN = 5_000
+EPS_END = 0.05
+SAVE_EVERY = 5_000
 init = True
 agent = None
 test = False
@@ -35,7 +35,7 @@ class QLEnv:
 
     def __init__(self, player, nb_rows, nb_cols, timelimit, episode):
 
-        self.EPSILON = EPS_END + (EPS_START - EPS_END)*(1-episode/DECAY_LEN)
+        self.EPSILON = EPS_END + (EPS_START - EPS_END)*(1-(episode/DECAY_LEN))
         self.EPSILON = max(self.EPSILON, EPS_END)
         self.timelimit = timelimit
         self.ended = False
@@ -53,14 +53,16 @@ class QLEnv:
         self.player = player
         self.score = [0, 0]
         self.reward = 0
+        self.prev_state = None
         self.dqn = DQN(self.len_states, self.len_states)
 
     def reset(self, episode):
         self.episode = episode
-        self.EPSILON = EPS_END + (EPS_START - EPS_END)*(1-episode/DECAY_LEN)
+        self.EPSILON = EPS_END + (EPS_START - EPS_END)*(1-(episode/DECAY_LEN))
         self.EPSILON = max(self.EPSILON, EPS_END)
         self.reward = 0
         self.state = np.zeros(self.len_states)
+        self.prev_state = None
         self.score = [0, 0]
         rows = []
         for _ in range(self.nb_rows + 1):
@@ -71,14 +73,16 @@ class QLEnv:
         self.cells = rows
         if (self.episode + 1) % SAVE_EVERY == 0:
             torch.save(self.dqn.model.state_dict(),
-                       f"model_{self.nb_rows}_rows_{self.nb_cols}_cols_{episode+1}.pth")
+                       f"model_self_play_{self.nb_rows}_rows_{self.nb_cols}_cols_{episode+1}.pth")
 
     def process_next_state(self, score):
         if self.player == 2:
             score = score[::-1]
         self.reward = score[0] - self.score[0] - score[1] + self.score[1]
-        # self.reward /= 100
+        self.reward *= 100
         self.score = score
+        if self.prev_state is None:
+            return
         self.dqn.memorize(self.prev_state, self.action,
                           self.reward, self.state)
         self.dqn.train()
@@ -139,9 +143,9 @@ class QLEnv:
 
     def end_game(self):
         if self.score[0] > self.score[1]:
-            self.reward += 100
+            self.reward += 1000
         elif self.score[0] < self.score[1]:
-            self.reward -= 100
+            self.reward -= 1000
         self.ended = True
         self.dqn.memorize(self.prev_state, self.action,
                           self.reward, self.state, done=True)
@@ -156,13 +160,13 @@ class QLPlayer:
         n = 24
         model = nn.Sequential(
             nn.Linear(self.len_states, n),
-            nn.BatchNorm1d(n),
+            # nn.BatchNorm1d(n),
             nn.ReLU(),
             nn.Linear(n, 2*n),
-            nn.BatchNorm1d(2*n),
+            # nn.BatchNorm1d(2*n),
             nn.ReLU(),
             nn.Linear(2*n, n),
-            nn.BatchNorm1d(n),
+            # nn.BatchNorm1d(n),
             nn.ReLU(),
             nn.Linear(n, self.len_states),
         )
@@ -184,7 +188,7 @@ class QLPlayer:
         self.state = np.zeros(self.len_states)
         self.player = player
         self.model = self.create_model().to(device)
-        self.model.load_state_dict(torch.load('model_100000.pth'))
+        self.model.load_state_dict(torch.load('model_2_rows_2_cols_20000.pth'))
         self.model.eval()
 
     def reset(self):
@@ -230,15 +234,11 @@ class QLPlayer:
     def next_action(self):
         free_lines = [i for i in range(len(self.state)) if self.state[i] == 0]
         if len(free_lines) == 0:
-            print('end')
             return None
         with torch.no_grad():
-            print(self.state)
             x = torch.Tensor(self.state).unsqueeze(0).to(device)
             out = self.model(x)[0].cpu()
-            print(out)
         moves = np.argsort(out)
-        print(moves)
         idx = len(moves) - 1
         while moves[idx] not in free_lines:
             idx -= 1
