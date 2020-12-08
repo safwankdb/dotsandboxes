@@ -69,7 +69,7 @@ class QLEnv:
                 columns.append({"v": 0, "h": 0})
             rows.append(columns)
         self.cells = rows
-        if self.episode + 1 % SAVE_EVERY == 0:
+        if (self.episode + 1) % SAVE_EVERY == 0:
             torch.save(self.dqn.model.state_dict(),
                        f"model_{self.nb_rows}_rows_{self.nb_cols}_cols_{episode+1}.pth")
 
