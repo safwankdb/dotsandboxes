@@ -24,7 +24,7 @@ games = {}
 
 EPS_START = 1
 DECAY_LEN = 5_000
-EPS_END = 0.05
+EPS_END = 0.1
 SAVE_EVERY = 5_000
 init = True
 agent = None
@@ -79,8 +79,8 @@ class QLEnv:
     def process_next_state(self, score):
         if self.player == 2:
             score = score[::-1]
-        self.reward = score[0] - self.score[0] - score[1] + self.score[1]
-        self.reward *= 100
+        # self.reward = score[0] - self.score[0] - score[1] + self.score[1]
+        # self.reward *= 100
         self.score = score
         if self.prev_state is None:
             return
@@ -144,9 +144,9 @@ class QLEnv:
 
     def end_game(self):
         if self.score[0] > self.score[1]:
-            self.reward += 1000
+            self.reward = 1
         elif self.score[0] < self.score[1]:
-            self.reward -= 1000
+            self.reward = -1
         self.ended = True
         self.dqn.memorize(self.prev_state, self.action,
                           self.reward, self.state, done=True)
@@ -189,7 +189,7 @@ class QLPlayer:
         self.state = np.zeros(self.len_states)
         self.player = player
         self.model = self.create_model().to(device)
-        self.model.load_state_dict(torch.load(f'model_self_play_2x2_player_{player}_20000.pth'))
+        self.model.load_state_dict(torch.load(f'model_self_play_2x2_20000.pth'))
         self.model.eval()
 
     def reset(self, player):
@@ -238,6 +238,7 @@ class QLPlayer:
         with torch.no_grad():
             x = torch.Tensor(self.state).unsqueeze(0).to(device)
             out = self.model(x)[0].cpu()
+        # print(out)
         moves = np.argsort(out)
         idx = len(moves) - 1
         while moves[idx] not in free_lines:

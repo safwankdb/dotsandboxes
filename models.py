@@ -5,8 +5,8 @@ import numpy as np
 import random
 from tqdm import tqdm
 
-REPLAY_MEMORY_SIZE = 50_000
-WARMUP_SIZE = 1000
+REPLAY_MEMORY_SIZE = 20_000
+WARMUP_SIZE = 5000
 GAMMA = 0.9
 TARGET_UPDATE = 5
 BATCH_SIZE = 32
@@ -36,6 +36,15 @@ class ExperienceReplay:
         return len(self.buffer)
 
 
+class ScaleLayer(nn.Module):
+    def __init__(self):
+        super(ScaleLayer, self).__init__()
+        self.alpha = 1/(1-GAMMA)
+
+    def forward(self, x):
+        return self.alpha * x
+
+
 class DQN(nn.Module):
 
     def create_model(self):
@@ -51,6 +60,8 @@ class DQN(nn.Module):
             nn.Linear(2*n, n),
             nn.ReLU(),
             nn.Linear(n, self.n_actions),
+            nn.Tanh(),
+            ScaleLayer(),
         )
         return model
 
