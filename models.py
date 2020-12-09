@@ -69,7 +69,7 @@ class DQN(nn.Module):
         self.n_states = n_states
         self.n_actions = n_actions
         self.replay_memory = ExperienceReplay()
-        self.model = self.create_model().to(device)
+        self.model = create_model(self.n_states, n_actions).to(device)
         self.target_model = create_model(self.n_states, n_actions).to(device)
         self.target_model.eval()
         self.opt = torch.optim.RMSprop(self.model.parameters(), 1e-3)
