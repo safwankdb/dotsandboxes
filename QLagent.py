@@ -17,14 +17,14 @@ import random
 import torch
 from torch import nn
 import numpy as np
-from models import DQN
+from models import DQN, GAMMA, create_model
 
 logger = logging.getLogger(__name__)
 games = {}
 
 EPS_START = 1
-DECAY_LEN = 20_000
-EPS_END = 0.1
+DECAY_LEN = 5_000
+EPS_END = 0.01
 SAVE_EVERY = 20_000
 init = True
 agent = None
@@ -38,7 +38,6 @@ class QLEnv:
         self.EPSILON = EPS_END + (EPS_START - EPS_END)*(1-(episode/DECAY_LEN))
         self.EPSILON = max(self.EPSILON, EPS_END)
         self.timelimit = timelimit
-        self.ended = False
         self.nb_rows = nb_rows
         self.nb_cols = nb_cols
         rows = []
@@ -142,12 +141,13 @@ class QLEnv:
             c = movei % (self.nb_cols)
         return r, c, o
 
-    def end_game(self):
-        if self.score[0] > self.score[1]:
+    def end_game(self, winner):
+        if winner == self.player:
             self.reward = 1
-        elif self.score[0] < self.score[1]:
+        elif winner == 0:
+            self.reward = 0
+        else:
             self.reward = -1
-        self.ended = True
         self.dqn.memorize(self.prev_state, self.action,
                           self.reward, self.state, done=True)
         self.dqn.train(terminal=True)
@@ -155,27 +155,9 @@ class QLEnv:
 
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
 
-
 class QLPlayer:
-    def create_model(self):
-        n = 24
-        model = nn.Sequential(
-            nn.Linear(self.len_states, n),
-            # nn.BatchNorm1d(n),
-            nn.ReLU(),
-            nn.Linear(n, 2*n),
-            # nn.BatchNorm1d(2*n),
-            nn.ReLU(),
-            nn.Linear(2*n, n),
-            # nn.BatchNorm1d(n),
-            nn.ReLU(),
-            nn.Linear(n, self.len_states),
-        )
-        return model
-
     def __init__(self, player, nb_rows, nb_cols, timelimit):
         print(f"Running on device: {device.upper()}")
-        self.ended = False
         self.nb_rows = nb_rows
         self.nb_cols = nb_cols
         rows = []
@@ -188,8 +170,8 @@ class QLPlayer:
         self.len_states = nb_rows*(nb_cols+1)+nb_cols*(nb_rows+1)
         self.state = np.zeros(self.len_states)
         self.player = player
-        self.model = self.create_model().to(device)
-        self.model.load_state_dict(torch.load(f'model_self_play_2x2_100000.pth'))
+        self.model = create_model(self.len_states, self.len_states).to(device)
+        self.model.load_state_dict(torch.load(f'model_self_play_2x2_340000.pth'))
         self.model.eval()
 
     def reset(self, player):
@@ -238,7 +220,7 @@ class QLPlayer:
         with torch.no_grad():
             x = torch.Tensor(self.state).unsqueeze(0).to(device)
             out = self.model(x)[0].cpu()
-        print(out)
+        # print(out)
         moves = np.argsort(out)
         idx = len(moves) - 1
         while moves[idx] not in free_lines:
@@ -257,8 +239,7 @@ class QLPlayer:
         return r, c, o
 
     def end_game(self):
-        self.ended = True
-
+        pass
 
 # MAIN EVENT LOOP
 
@@ -319,8 +300,10 @@ async def handler(websocket, path):
                 answer = None
 
         elif msg["type"] == "end":
-            # End the game
-            agent.end_game()
+            r, c = msg["location"]
+            o = msg["orientation"]
+            agent.register_action(r, c, o, msg["player"])
+            agent.end_game(msg['winner'])
             answer = None
         else:
             logger.error("Unknown message type:\n{}".format(msg))

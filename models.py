@@ -44,30 +44,25 @@ class ScaleLayer(nn.Module):
     def forward(self, x):
         return self.alpha * x
 
+def create_model(ins, outs):
+    if ins <= 12:
+        n = 32
+    else:
+        n = 64
+    model = nn.Sequential(
+        nn.Linear(ins, n),
+        nn.ReLU(),
+        nn.Linear(n, 4*n),
+        nn.ReLU(),
+        nn.Linear(4*n, n),
+        nn.ReLU(),
+        nn.Linear(n, outs),
+        nn.Tanh(),
+        ScaleLayer(),
+    )
+    return model
 
 class DQN(nn.Module):
-
-    def create_model(self):
-        if self.n_states <= 12:
-            n = 32
-        else:
-            n = 64
-        model = nn.Sequential(
-            nn.Linear(self.n_states, n),
-            nn.ReLU(),
-            nn.Linear(n, 2*n),
-            nn.ReLU(),
-            nn.Linear(2*n, 4*n),
-            nn.ReLU(),
-            nn.Linear(4*n, 2*n),
-            nn.ReLU(),
-            nn.Linear(2*n, n),
-            nn.ReLU(),
-            nn.Linear(n, self.n_actions),
-            nn.Tanh(),
-            ScaleLayer(),
-        )
-        return model
 
     def __init__(self, n_states, n_actions):
         super(DQN, self).__init__()
@@ -75,7 +70,7 @@ class DQN(nn.Module):
         self.n_actions = n_actions
         self.replay_memory = ExperienceReplay()
         self.model = self.create_model().to(device)
-        self.target_model = self.create_model().to(device)
+        self.target_model = create_model(self.n_states, n_actions).to(device)
         self.target_model.eval()
         self.opt = torch.optim.RMSprop(self.model.parameters(), 1e-3)
         # self.loss = nn.SmoothL1Loss()
