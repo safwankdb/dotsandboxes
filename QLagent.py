@@ -171,7 +171,7 @@ class QLPlayer:
         self.state = np.zeros(self.len_states)
         self.player = player
         self.model = create_model(self.len_states, self.len_states).to(device)
-        self.model.load_state_dict(torch.load(f'model_self_play_2x2_340000.pth'))
+        self.model.load_state_dict(torch.load(f'model_self_play_2x2_20000.pth'))
         self.model.eval()
 
     def reset(self, player):
@@ -238,7 +238,7 @@ class QLPlayer:
             c = movei % (self.nb_cols)
         return r, c, o
 
-    def end_game(self):
+    def end_game(self, winner):
         pass
 
 # MAIN EVENT LOOP
