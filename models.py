@@ -5,8 +5,8 @@ import numpy as np
 import random
 from tqdm import tqdm
 
-REPLAY_MEMORY_SIZE = 20_000
-WARMUP_SIZE = 5000
+REPLAY_MEMORY_SIZE = 50_000
+WARMUP_SIZE = 1000
 GAMMA = 0.9
 TARGET_UPDATE = 50
 BATCH_SIZE = 32
@@ -51,10 +51,13 @@ def create_model(ins, outs):
         n = 64
     model = nn.Sequential(
         nn.Linear(ins, n),
+        nn.BatchNorm1d(n),
         nn.ReLU(),
         nn.Linear(n, 4*n),
+        nn.BatchNorm1d(4*n),
         nn.ReLU(),
         nn.Linear(4*n, n),
+        nn.BatchNorm1d(n),
         nn.ReLU(),
         nn.Linear(n, outs),
         nn.Tanh(),
@@ -105,6 +108,7 @@ class DQN(nn.Module):
 
         X = []
         y = []
+        A = []
         for i, (s, a, r, _, done) in enumerate(minibatch):
             if done:
                 q_ = r
@@ -113,13 +117,16 @@ class DQN(nn.Module):
             q = Q[i]
             q[a] = q_
             X.append(s)
-            y.append(q)
+            y.append(q[a])
+            A.append(a)
 
         X = torch.Tensor(X).to(device)
-        y = torch.stack(y).to(device)
+        y = torch.stack(y).view(-1,1).to(device)
+        A = torch.Tensor(A).long().to(device)
 
         self.model.train()
         out = self.model(X)
+        out = torch.gather(out, 1, A.unsqueeze(-1))
         loss = self.loss(out, y)
         self.opt.zero_grad()
         loss.backward()
